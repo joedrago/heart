@@ -26,8 +26,11 @@ onTick = ->
 onInputEvent = (ev) ->
   switch ev.type
     when 'msg'
-      if ev.chan? and ev.text?
-        send(ev.chan, ev.text)
+      if ev.chan? and ev.text? and ev.delay?
+        delay = parseInt(ev.delay)
+        setTimeout ->
+          send(ev.chan, ev.text)
+        , delay
     else
       console.error "Unknown event type: #{ev.type}"
   return
