@@ -1,0 +1,21 @@
+{
+  "name": "heart",
+  "version": "0.0.1",
+  "description": "Discord Heart",
+  "bin": {
+    "heart": "./bin/heart"
+  },
+  "scripts": {
+    "build": "cake build",
+    "watch": "cake watch"
+  },
+  "author": "Joe Drago",
+  "devDependencies": {
+    "coffeescript": "^2.5.1",
+    "node-watch": "^0.6.4",
+    "util": "^0.12.3"
+  },
+  "dependencies": {
+    "discord.js": "^12.3.1"
+  }
+}
