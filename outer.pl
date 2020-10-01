@@ -27,6 +27,7 @@ while(my $rawJSON = <$heartOutput>) {
             type => 'msg',
             chan => $ev->{'chan'},
             text => "HEARD: " . $ev->{'text'},
+            delay => 0,
         };
         print $heartInput to_json($sev);
         print $heartInput "\n";
