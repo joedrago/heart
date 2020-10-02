@@ -13,7 +13,7 @@ fatalError = (reason) ->
 
 send = (channelName, text) ->
   channel = discordClient.channels.cache.find (c) ->
-    c.name == channelName
+    (c.name == channelName) and (c.type == 'text')
   if channel?
     channel.send(text)
   return

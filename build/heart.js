@@ -24,7 +24,7 @@
   send = function(channelName, text) {
     var channel;
     channel = discordClient.channels.cache.find(function(c) {
-      return c.name === channelName;
+      return (c.name === channelName) && (c.type === 'text');
     });
     if (channel != null) {
       channel.send(text);
