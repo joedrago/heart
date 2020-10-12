@@ -60,11 +60,23 @@ roleDel = (username, roleName, chan) ->
   .catch (err) ->
     send(chan, "ERROR: Failed to remove role `#{roleName}` from user `#{username}`: #{err}")
 
-roleList = (chan) ->
+roleList = (username, chan) ->
+  user = findUser(username, chan)
+  if not user?
+    return
+  myRoles = ""
+  user.roles.cache.each (role) ->
+    if !roleAllowed[role.name]
+      return
+    if myRoles.length > 0
+      myRoles += ", "
+    myRoles += "`#{role.name}`"
+  if myRoles.length == 0
+    myRoles = "`(none)`"
   list = discordConfig.roles.map (role) ->
     "`#{role}`"
   .join(", ")
-  send(chan, "Roles: #{list}")
+  send(chan, "Current: #{myRoles}. Available: #{list}")
 
 onTick = ->
   ev =
@@ -86,8 +98,8 @@ onInputEvent = (ev) ->
       if ev.user? and ev.role? and ev.chan?
         roleDel(ev.user, ev.role, ev.chan)
     when 'rlist'
-      if ev.chan?
-        roleList(ev.chan)
+      if ev.user? and ev.chan?
+        roleList(ev.user, ev.chan)
     else
       console.error "Unknown event type: #{ev.type}"
   return

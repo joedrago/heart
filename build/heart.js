@@ -51,7 +51,6 @@
   findUser = function(username, chan) {
     var user;
     user = discordGuild.members.cache.find(function(e) {
-      console.log(`looking at ${JSON.stringify(e)}`);
       return e.displayName === username;
     });
     if (user == null) {
@@ -94,12 +93,29 @@
     });
   };
 
-  roleList = function(chan) {
-    var list;
+  roleList = function(username, chan) {
+    var list, myRoles, user;
+    user = findUser(username, chan);
+    if (user == null) {
+      return;
+    }
+    myRoles = "";
+    user.roles.cache.each(function(role) {
+      if (!roleAllowed[role.name]) {
+        return;
+      }
+      if (myRoles.length > 0) {
+        myRoles += ", ";
+      }
+      return myRoles += `\`${role.name}\``;
+    });
+    if (myRoles.length === 0) {
+      myRoles = "`(none)`";
+    }
     list = discordConfig.roles.map(function(role) {
       return `\`${role}\``;
     }).join(", ");
-    return send(chan, `Roles: ${list}`);
+    return send(chan, `Current: ${myRoles}. Available: ${list}`);
   };
 
   onTick = function() {
@@ -132,8 +148,8 @@
         }
         break;
       case 'rlist':
-        if (ev.chan != null) {
-          roleList(ev.chan);
+        if ((ev.user != null) && (ev.chan != null)) {
+          roleList(ev.user, ev.chan);
         }
         break;
       default:
