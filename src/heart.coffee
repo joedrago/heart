@@ -96,9 +96,9 @@ roleList = (username, chan) ->
 
   availableList = ""
   for availableRole in discordConfig.roles
-    if availableList.length > 0
-      availableList += ", "
     if not myRolesMap[availableRole]
+      if availableList.length > 0
+        availableList += ", "
       availableList += "`#{availableRole}`"
   if availableList.length == 0
     availableList = "`(none)`"

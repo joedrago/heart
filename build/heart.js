@@ -147,10 +147,10 @@
     ref = discordConfig.roles;
     for (i = 0, len = ref.length; i < len; i++) {
       availableRole = ref[i];
-      if (availableList.length > 0) {
-        availableList += ", ";
-      }
       if (!myRolesMap[availableRole]) {
+        if (availableList.length > 0) {
+          availableList += ", ";
+        }
         availableList += `\`${availableRole}\``;
       }
     }
