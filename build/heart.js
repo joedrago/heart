@@ -123,12 +123,13 @@
   };
 
   roleList = function(username, chan) {
-    var list, myRoles, user;
+    var availableList, availableRole, i, len, myRoles, myRolesMap, ref, user;
     user = findUser(username, chan);
     if (user == null) {
       return;
     }
     myRoles = "";
+    myRolesMap = {};
     user.roles.cache.each(function(role) {
       if (!roleAllowed[role.name]) {
         return;
@@ -136,15 +137,27 @@
       if (myRoles.length > 0) {
         myRoles += ", ";
       }
-      return myRoles += `\`${role.name}\``;
+      myRoles += `\`${role.name}\``;
+      return myRolesMap[role.name] = true;
     });
     if (myRoles.length === 0) {
       myRoles = "`(none)`";
     }
-    list = discordConfig.roles.map(function(role) {
-      return `\`${role}\``;
-    }).join(", ");
-    return send(chan, `\`${username}\`'s roles: ${myRoles}. Available: ${list}`);
+    availableList = "";
+    ref = discordConfig.roles;
+    for (i = 0, len = ref.length; i < len; i++) {
+      availableRole = ref[i];
+      if (availableList.length > 0) {
+        availableList += ", ";
+      }
+      if (!myRolesMap[availableRole]) {
+        availableList += `\`${availableRole}\``;
+      }
+    }
+    if (availableList.length === 0) {
+      availableList = "`(none)`";
+    }
+    return send(chan, `\`${username}\`'s roles: ${myRoles}. Available: ${availableList}`);
   };
 
   onTick = function() {

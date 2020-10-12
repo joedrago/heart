@@ -83,18 +83,26 @@ roleList = (username, chan) ->
   if not user?
     return
   myRoles = ""
+  myRolesMap = {}
   user.roles.cache.each (role) ->
     if !roleAllowed[role.name]
       return
     if myRoles.length > 0
       myRoles += ", "
     myRoles += "`#{role.name}`"
+    myRolesMap[role.name] = true
   if myRoles.length == 0
     myRoles = "`(none)`"
-  list = discordConfig.roles.map (role) ->
-    "`#{role}`"
-  .join(", ")
-  send(chan, "`#{username}`'s roles: #{myRoles}. Available: #{list}")
+
+  availableList = ""
+  for availableRole in discordConfig.roles
+    if availableList.length > 0
+      availableList += ", "
+    if not myRolesMap[availableRole]
+      availableList += "`#{availableRole}`"
+  if availableList.length == 0
+    availableList = "`(none)`"
+  send(chan, "`#{username}`'s roles: #{myRoles}. Available: #{availableList}")
 
 onTick = ->
   ev =
