@@ -19,15 +19,21 @@ send = (channelName, text) ->
     channel.send(text)
   return
 
-findRole = (user, roleName, chan) ->
-  if not roleAllowed[roleName]
-    send(chan, "ERROR: Role `#{roleName}` is unavailable to be modified this way.")
-    return null
-  role = discordGuild.roles.cache.find (e) ->
-    e.name == roleName
-  if not role?
-    send(chan, "ERROR: Can't find role `#{roleName}` on the server.")
-  return role
+findRoles = (user, roleNames, chan) ->
+  for roleName in roleNames
+    if not roleAllowed[roleName]
+      send(chan, "ERROR: Role `#{roleName}` is unavailable to be modified this way.")
+      return null
+  roles = []
+  discordGuild.roles.cache.each (e) ->
+    for r in roleNames
+      if e.name == r
+        roles.push e
+        break
+
+  if roles.length == 0
+    send(chan, "ERROR: Can't find any roles on the server.")
+  return roles
 
 findUser = (username, chan) ->
   user = discordGuild.members.cache.find (e) ->
@@ -36,29 +42,41 @@ findUser = (username, chan) ->
     send(chan, "ERROR: Can't find user `#{username}` on the server.")
   return user
 
-roleAdd = (username, roleName, chan) ->
-  role = findRole(user, roleName, chan)
-  if not role?
+roleAdd = (username, roleNames, chan) ->
+  roles = findRoles(user, roleNames, chan)
+  if not roles?
     return
   user = findUser(username, chan)
   if not user?
     return
-  user.roles.add(role).then ->
-    send(chan, "Added role `#{roleName}` to user `#{username}`.")
+  rolePretty = roles.map (role) ->
+    "`#{role.name}`"
+  .join(", ")
+  plural = ""
+  if roles.length > 1
+    plural = "s"
+  user.roles.add(roles).then ->
+    send(chan, "Added role#{plural} #{rolePretty} to user `#{username}`.")
   .catch (err) ->
-    send(chan, "ERROR: Failed to add role `#{roleName}` to user `#{username}`: #{err}")
+    send(chan, "ERROR: Failed to add role #{rolePretty} to user `#{username}`: #{err}")
 
-roleDel = (username, roleName, chan) ->
-  role = findRole(user, roleName, chan)
-  if not role?
+roleDel = (username, roleNames, chan) ->
+  roles = findRoles(user, roleNames, chan)
+  if not roles?
     return
   user = findUser(username, chan)
   if not user?
     return
-  user.roles.remove(role).then ->
-    send(chan, "Removed role `#{roleName}` from user `#{username}`.")
+  rolePretty = roles.map (role) ->
+    "`#{role.name}`"
+  .join(", ")
+  plural = ""
+  if roles.length > 1
+    plural = "s"
+  user.roles.remove(roles).then ->
+    send(chan, "Removed role#{plural} #{rolePretty} from user `#{username}`.")
   .catch (err) ->
-    send(chan, "ERROR: Failed to remove role `#{roleName}` from user `#{username}`: #{err}")
+    send(chan, "ERROR: Failed to remove roles #{rolePretty} from user `#{username}`: #{err}")
 
 roleList = (username, chan) ->
   user = findUser(username, chan)
@@ -76,7 +94,7 @@ roleList = (username, chan) ->
   list = discordConfig.roles.map (role) ->
     "`#{role}`"
   .join(", ")
-  send(chan, "Current: #{myRoles}. Available: #{list}")
+  send(chan, "`#{username}`'s roles: #{myRoles}. Available: #{list}")
 
 onTick = ->
   ev =
@@ -93,10 +111,10 @@ onInputEvent = (ev) ->
         , delay
     when 'radd'
       if ev.user? and ev.role? and ev.chan?
-        roleAdd(ev.user, ev.role, ev.chan)
+        roleAdd(ev.user, ev.role.split(/\s+/), ev.chan)
     when 'rdel'
       if ev.user? and ev.role? and ev.chan?
-        roleDel(ev.user, ev.role, ev.chan)
+        roleDel(ev.user, ev.role.split(/\s+/), ev.chan)
     when 'rlist'
       if ev.user? and ev.chan?
         roleList(ev.user, ev.chan)
