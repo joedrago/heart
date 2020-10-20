@@ -109,6 +109,11 @@ onTick = ->
     type: 'tick'
   console.log JSON.stringify(ev)
 
+onFastTick = ->
+  ev =
+    type: 'ftick'
+  console.log JSON.stringify(ev)
+
 onInputEvent = (ev) ->
   switch ev.type
     when 'msg'
@@ -165,6 +170,7 @@ main = ->
       console.log JSON.stringify(ev)
 
   setInterval onTick, (60 * 1000)
+  setInterval onFastTick, (5 * 1000)
 
   rl = readline.createInterface {
     input: process.stdin
