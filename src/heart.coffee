@@ -19,6 +19,15 @@ send = (channelName, text) ->
     channel.send(text)
   return
 
+reply = (username, text) ->
+  user = discordGuild.members.cache.find (e) ->
+    username == e.user.tag
+  if user?
+    user.send(text)
+  else
+    console.error "Can't find user: #{username}"
+  return
+
 findRoles = (user, roleNames, chan) ->
   for roleName in roleNames
     if not roleAllowed[roleName]
@@ -37,7 +46,10 @@ findRoles = (user, roleNames, chan) ->
 
 findUser = (username, chan) ->
   user = discordGuild.members.cache.find (e) ->
-    e.displayName == username
+    displayName = e.displayName
+    if discordConfig.useTags
+      displayName = e.user.tag
+    displayName == username
   if not user?
     send(chan, "ERROR: Can't find user `#{username}` on the server.")
   return user
@@ -122,6 +134,9 @@ onInputEvent = (ev) ->
         setTimeout ->
           send(ev.chan, ev.text)
         , delay
+    when 'reply'
+      if ev.user? and ev.text?
+        reply(ev.user, ev.text)
     when 'radd'
       if ev.user? and ev.role? and ev.chan?
         roleAdd(ev.user, ev.role.split(/\s+/), ev.chan)
@@ -161,11 +176,21 @@ main = ->
         # Don't respond to yourself
         return
 
-      ev =
-        type: 'msg'
-        chan: msg.channel.name
-        user: user.displayName
-        text: msg.content
+      displayName = user.displayName
+      if discordConfig.useTags
+        displayName = user.user.tag
+
+      if msg.channel.type == 'dm'
+        ev =
+          type: 'dm'
+          user: user.user.tag
+          text: msg.content
+      else
+        ev =
+          type: 'msg'
+          chan: msg.channel.name
+          user: displayName
+          text: msg.content
 
       console.log JSON.stringify(ev)
 
