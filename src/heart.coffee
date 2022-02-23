@@ -13,10 +13,25 @@ fatalError = (reason) ->
   process.exit(1)
 
 send = (channelName, text) ->
-  channel = discordClient.channels.cache.find (c) ->
-    (c.name == channelName) and (c.type == 'text')
-  if channel?
-    channel.send(text)
+  if not discordGuild?
+    return
+
+  isThread = false
+  if matches = channelName.match(/^@@@(.+)/)
+    channelName = matches[1]
+    isThread = true
+
+  if isThread
+    discordGuild.channels.fetchActiveThreads().then((fetched) ->
+      fetched.threads.each (thread) ->
+        if thread.name == channelName
+          thread.send(text)
+    ).catch(console.error)
+  else
+    channel = discordClient.channels.cache.find (c) ->
+      (c.name == channelName) and (c.type == 'text')
+    if channel?
+      channel.send(text)
   return
 
 reply = (username, text) ->
@@ -158,23 +173,31 @@ main = ->
   for role in discordConfig.roles
     roleAllowed[role] = true
 
-  discordClient = new Discord.Client()
+  discordClient = new Discord.Client({ intents: [Discord.Intents.FLAGS.GUILDS, Discord.Intents.FLAGS.GUILD_MESSAGES, Discord.Intents.FLAGS.DIRECT_MESSAGES]})
   discordClient.on 'ready', ->
     console.log JSON.stringify {
       type: 'login'
       tag: discordClient.user.tag
     }
+    discordID = discordClient.user.id
     discordClient.guilds.fetch(discordConfig.guild).then (guild) ->
       discordGuild = guild
 
-  discordClient.on 'message', (msg) ->
+  discordClient.on 'messageCreate', (msg) ->
     if discordGuild == null
       return
+
+    #msg.channel.threads.cache.each (thread) ->
+    #  console.error "thread: ", thread
 
     discordGuild.members.fetch(msg).then (user) ->
       if user.id == discordClient.user.id
         # Don't respond to yourself
         return
+
+      channelName = msg.channel.name
+      if msg.channel.isThread()
+        channelName = "@@@" + channelName
 
       displayName = user.displayName
       if discordConfig.useTags
@@ -184,12 +207,14 @@ main = ->
         ev =
           type: 'dm'
           user: user.user.tag
+          tag: user.user.tag
           text: msg.content
       else
         ev =
           type: 'msg'
-          chan: msg.channel.name
+          chan: channelName
           user: displayName
+          tag: user.user.tag
           text: msg.content
 
       console.log JSON.stringify(ev)

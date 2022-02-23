@@ -24,12 +24,30 @@
   };
 
   send = function(channelName, text) {
-    var channel;
-    channel = discordClient.channels.cache.find(function(c) {
-      return (c.name === channelName) && (c.type === 'text');
-    });
-    if (channel != null) {
-      channel.send(text);
+    var channel, isThread, matches;
+    if (discordGuild == null) {
+      return;
+    }
+    isThread = false;
+    if (matches = channelName.match(/^@@@(.+)/)) {
+      channelName = matches[1];
+      isThread = true;
+    }
+    if (isThread) {
+      discordGuild.channels.fetchActiveThreads().then(function(fetched) {
+        return fetched.threads.each(function(thread) {
+          if (thread.name === channelName) {
+            return thread.send(text);
+          }
+        });
+      }).catch(console.error);
+    } else {
+      channel = discordClient.channels.cache.find(function(c) {
+        return (c.name === channelName) && (c.type === 'text');
+      });
+      if (channel != null) {
+        channel.send(text);
+      }
     }
   };
 
@@ -240,26 +258,35 @@
       role = ref[i];
       roleAllowed[role] = true;
     }
-    discordClient = new Discord.Client();
+    discordClient = new Discord.Client({
+      intents: [Discord.Intents.FLAGS.GUILDS, Discord.Intents.FLAGS.GUILD_MESSAGES, Discord.Intents.FLAGS.DIRECT_MESSAGES]
+    });
     discordClient.on('ready', function() {
       console.log(JSON.stringify({
         type: 'login',
         tag: discordClient.user.tag
       }));
+      discordID = discordClient.user.id;
       return discordClient.guilds.fetch(discordConfig.guild).then(function(guild) {
         return discordGuild = guild;
       });
     });
-    discordClient.on('message', function(msg) {
+    discordClient.on('messageCreate', function(msg) {
       if (discordGuild === null) {
         return;
       }
+      //msg.channel.threads.cache.each (thread) ->
+      //  console.error "thread: ", thread
       return discordGuild.members.fetch(msg).then(function(user) {
-        var displayName, ev;
+        var channelName, displayName, ev;
         if (user.id === discordClient.user.id) {
           return;
         }
         // Don't respond to yourself
+        channelName = msg.channel.name;
+        if (msg.channel.isThread()) {
+          channelName = "@@@" + channelName;
+        }
         displayName = user.displayName;
         if (discordConfig.useTags) {
           displayName = user.user.tag;
@@ -268,13 +295,15 @@
           ev = {
             type: 'dm',
             user: user.user.tag,
+            tag: user.user.tag,
             text: msg.content
           };
         } else {
           ev = {
             type: 'msg',
-            chan: msg.channel.name,
+            chan: channelName,
             user: displayName,
+            tag: user.user.tag,
             text: msg.content
           };
         }
