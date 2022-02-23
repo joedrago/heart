@@ -29,7 +29,8 @@ send = (channelName, text) ->
     ).catch(console.error)
   else
     channel = discordClient.channels.cache.find (c) ->
-      (c.name == channelName) and (c.type == 'text')
+      console.error "c.type: #{c.type}"
+      (c.name == channelName) and (c.type == 'GUILD_TEXT')
     if channel?
       channel.send(text)
   return

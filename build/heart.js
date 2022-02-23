@@ -43,7 +43,8 @@
       }).catch(console.error);
     } else {
       channel = discordClient.channels.cache.find(function(c) {
-        return (c.name === channelName) && (c.type === 'text');
+        console.error(`c.type: ${c.type}`);
+        return (c.name === channelName) && (c.type === 'GUILD_TEXT');
       });
       if (channel != null) {
         channel.send(text);
