@@ -8,6 +8,8 @@ discordClient = null
 discordGuild = null
 roleAllowed = {}
 
+nukes = []
+
 fatalError = (reason) ->
   console.error "FATAL [heart]: #{reason}"
   process.exit(1)
@@ -174,6 +176,9 @@ main = ->
   for role in discordConfig.roles
     roleAllowed[role] = true
 
+  if discordConfig.nukes?
+    nukes = discordConfig.nukes
+
   discordClient = new Discord.Client({ intents: [Discord.Intents.FLAGS.GUILDS, Discord.Intents.FLAGS.GUILD_MESSAGES, Discord.Intents.FLAGS.DIRECT_MESSAGES]})
   discordClient.on 'ready', ->
     console.log JSON.stringify {
@@ -196,6 +201,14 @@ main = ->
         # Don't respond to yourself
         return
 
+      for nuke in nukes
+        if msg.content.match(nuke.regex)
+          if not nuke.ignoreChannels[msg.channel.name]
+            if nuke.dm
+              user.send("Message nuked by Skittles rule: `#{nuke.name}`\n> #{msg.content}")
+            msg.delete()
+            return
+
       channelName = msg.channel.name
       if msg.channel.isThread()
         channelName = "@@@" + channelName
@@ -204,7 +217,7 @@ main = ->
       if discordConfig.useTags
         displayName = user.user.tag
 
-      if msg.channel.type == 'dm'
+      if msg.channel.type == 'DM'
         ev =
           type: 'dm'
           user: user.user.tag
