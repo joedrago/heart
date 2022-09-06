@@ -15,6 +15,8 @@ fatalError = (reason) ->
   process.exit(1)
 
 send = (channelName, text) ->
+  if text.length < 1
+    return
   if not discordGuild?
     return
 
@@ -38,6 +40,8 @@ send = (channelName, text) ->
   return
 
 reply = (username, text) ->
+  if text.length < 1
+    return
   user = discordGuild.members.cache.find (e) ->
     username == e.user.tag
   if user?

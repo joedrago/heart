@@ -27,6 +27,9 @@
 
   send = function(channelName, text) {
     var channel, isThread, matches;
+    if (text.length < 1) {
+      return;
+    }
     if (discordGuild == null) {
       return;
     }
@@ -56,6 +59,9 @@
 
   reply = function(username, text) {
     var user;
+    if (text.length < 1) {
+      return;
+    }
     user = discordGuild.members.cache.find(function(e) {
       return username === e.user.tag;
     });
