@@ -41,7 +41,11 @@ reply = (username, text) ->
   user = discordGuild.members.cache.find (e) ->
     username == e.user.tag
   if user?
-    user.send(text)
+    try
+      user.send(text)
+    catch
+      # who cares
+      console.log "didnt send message to #{username}, something dumb happened"
   else
     console.error "Can't find user: #{username}"
   return
@@ -179,7 +183,7 @@ main = ->
   if discordConfig.nukes?
     nukes = discordConfig.nukes
 
-  discordClient = new Discord.Client({ intents: [Discord.Intents.FLAGS.GUILDS, Discord.Intents.FLAGS.GUILD_MESSAGES, Discord.Intents.FLAGS.DIRECT_MESSAGES]})
+  discordClient = new Discord.Client({ partials: ["CHANNEL"], intents: [Discord.Intents.FLAGS.GUILDS, Discord.Intents.FLAGS.GUILD_MESSAGES, Discord.Intents.FLAGS.DIRECT_MESSAGES]})
   discordClient.on 'ready', ->
     console.log JSON.stringify {
       type: 'login'
