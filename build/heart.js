@@ -227,6 +227,9 @@
 
   onInputEvent = function(ev) {
     var delay;
+    if ((ev.text != null) && (ev.text.length > 2000)) {
+      ev.text = ev.text.substr(0, 1999);
+    }
     switch (ev.type) {
       case 'msg':
         if ((ev.chan != null) && (ev.text != null) && (ev.delay != null)) {
@@ -336,6 +339,13 @@
             tag: user.user.tag,
             text: msg.content
           };
+        }
+        if (msg.attachments != null) {
+          msg.attachments.each(function(a) {
+            if ((a.url != null) && a.contentType === "image/png") {
+              return ev.image = a.url;
+            }
+          });
         }
         return console.log(JSON.stringify(ev));
       });

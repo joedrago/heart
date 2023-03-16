@@ -153,6 +153,8 @@ onFastTick = ->
   console.log JSON.stringify(ev)
 
 onInputEvent = (ev) ->
+  if ev.text? and (ev.text.length > 2000)
+    ev.text = ev.text.substr(0, 1999)
   switch ev.type
     when 'msg'
       if ev.chan? and ev.text? and ev.delay?
@@ -238,6 +240,11 @@ main = ->
           user: displayName
           tag: user.user.tag
           text: msg.content
+
+      if msg.attachments?
+        msg.attachments.each (a) ->
+          if a.url? and a.contentType == "image/png"
+            ev.image = a.url
 
       console.log JSON.stringify(ev)
 
