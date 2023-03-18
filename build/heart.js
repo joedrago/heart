@@ -365,9 +365,9 @@
     setInterval(onTick, 60 * 1000);
     setInterval(onFastTick, 5 * 1000);
     rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stderr
+      input: process.stdin
     });
+    //output: process.stderr
     rl.on('line', function(rawJSON) {
       var ev;
       ev = null;

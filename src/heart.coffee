@@ -267,7 +267,7 @@ main = ->
 
   rl = readline.createInterface {
     input: process.stdin
-    output: process.stderr
+    #output: process.stderr
   }
   rl.on 'line', (rawJSON) ->
     ev = null
