@@ -25,8 +25,8 @@
     return process.exit(1);
   };
 
-  send = function(channelName, text) {
-    var channel, isThread, matches;
+  send = function(channelName, text, image) {
+    var channel, isThread, matches, payload;
     if (text.length < 1) {
       return;
     }
@@ -38,27 +38,33 @@
       channelName = matches[1];
       isThread = true;
     }
+    payload = {
+      content: text
+    };
+    if (image != null) {
+      payload.files = [Buffer.from(image, 'base64')];
+    }
     if (isThread) {
       discordGuild.channels.fetchActiveThreads().then(function(fetched) {
         return fetched.threads.each(function(thread) {
           if (thread.name === channelName) {
-            return thread.send(text);
+            return thread.send(payload);
           }
         });
       }).catch(console.error);
     } else {
       channel = discordClient.channels.cache.find(function(c) {
-        console.error(`c.type: ${c.type}`);
+        //console.error "c.type: #{c.type}"
         return (c.name === channelName) && (c.type === 'GUILD_TEXT');
       });
       if (channel != null) {
-        channel.send(text);
+        channel.send(payload);
       }
     }
   };
 
-  reply = function(username, text) {
-    var user;
+  reply = function(username, text, image) {
+    var payload, user;
     if (text.length < 1) {
       return;
     }
@@ -67,7 +73,13 @@
     });
     if (user != null) {
       try {
-        user.send(text);
+        payload = {
+          content: text
+        };
+        if (image != null) {
+          payload.files = [Buffer.from(image, 'base64')];
+        }
+        user.send(payload);
       } catch (error) {
         // who cares
         console.log(`didnt send message to ${username}, something dumb happened`);
@@ -235,13 +247,13 @@
         if ((ev.chan != null) && (ev.text != null) && (ev.delay != null)) {
           delay = parseInt(ev.delay);
           setTimeout(function() {
-            return send(ev.chan, ev.text);
+            return send(ev.chan, ev.text, ev.image);
           }, delay);
         }
         break;
       case 'reply':
         if ((ev.user != null) && (ev.text != null)) {
-          reply(ev.user, ev.text);
+          reply(ev.user, ev.text, ev.image);
         }
         break;
       case 'radd':

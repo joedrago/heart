@@ -14,7 +14,7 @@ fatalError = (reason) ->
   console.error "FATAL [heart]: #{reason}"
   process.exit(1)
 
-send = (channelName, text) ->
+send = (channelName, text, image) ->
   if text.length < 1
     return
   if not discordGuild?
@@ -25,28 +25,42 @@ send = (channelName, text) ->
     channelName = matches[1]
     isThread = true
 
+
+  payload =
+    content: text
+  if image?
+    payload.files = [
+      Buffer.from(image, 'base64')
+    ]
+
   if isThread
     discordGuild.channels.fetchActiveThreads().then((fetched) ->
       fetched.threads.each (thread) ->
         if thread.name == channelName
-          thread.send(text)
+          thread.send(payload)
     ).catch(console.error)
   else
     channel = discordClient.channels.cache.find (c) ->
-      console.error "c.type: #{c.type}"
+      #console.error "c.type: #{c.type}"
       (c.name == channelName) and (c.type == 'GUILD_TEXT')
     if channel?
-      channel.send(text)
+      channel.send(payload)
   return
 
-reply = (username, text) ->
+reply = (username, text, image) ->
   if text.length < 1
     return
   user = discordGuild.members.cache.find (e) ->
     username == e.user.tag
   if user?
     try
-      user.send(text)
+      payload =
+        content: text
+      if image?
+        payload.files = [
+          Buffer.from(image, 'base64')
+        ]
+      user.send(payload)
     catch
       # who cares
       console.log "didnt send message to #{username}, something dumb happened"
@@ -160,11 +174,11 @@ onInputEvent = (ev) ->
       if ev.chan? and ev.text? and ev.delay?
         delay = parseInt(ev.delay)
         setTimeout ->
-          send(ev.chan, ev.text)
+          send(ev.chan, ev.text, ev.image)
         , delay
     when 'reply'
       if ev.user? and ev.text?
-        reply(ev.user, ev.text)
+        reply(ev.user, ev.text, ev.image)
     when 'radd'
       if ev.user? and ev.role? and ev.chan?
         roleAdd(ev.user, ev.role.split(/\s+/), ev.chan)
