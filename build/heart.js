@@ -25,7 +25,7 @@
     return process.exit(1);
   };
 
-  send = function(channelName, text, image) {
+  send = function(channelName, text, images) {
     var channel, isThread, matches, payload;
     if (text.length < 1) {
       return;
@@ -41,8 +41,10 @@
     payload = {
       content: text
     };
-    if (image != null) {
-      payload.files = [Buffer.from(image, 'base64')];
+    if (images != null) {
+      payload.files = images.map(function(im) {
+        return Buffer.from(im, 'base64');
+      });
     }
     if (isThread) {
       discordGuild.channels.fetchActiveThreads().then(function(fetched) {
@@ -63,7 +65,7 @@
     }
   };
 
-  reply = function(username, text, image) {
+  reply = function(username, text, images) {
     var payload, user;
     if (text.length < 1) {
       return;
@@ -76,8 +78,10 @@
         payload = {
           content: text
         };
-        if (image != null) {
-          payload.files = [Buffer.from(image, 'base64')];
+        if (images != null) {
+          payload.files = images.map(function(im) {
+            return Buffer.from(im, 'base64');
+          });
         }
         user.send(payload);
       } catch (error) {
@@ -247,13 +251,13 @@
         if ((ev.chan != null) && (ev.text != null) && (ev.delay != null)) {
           delay = parseInt(ev.delay);
           setTimeout(function() {
-            return send(ev.chan, ev.text, ev.image);
+            return send(ev.chan, ev.text, ev.images);
           }, delay);
         }
         break;
       case 'reply':
         if ((ev.user != null) && (ev.text != null)) {
-          reply(ev.user, ev.text, ev.image);
+          reply(ev.user, ev.text, ev.images);
         }
         break;
       case 'radd':
@@ -354,7 +358,7 @@
         }
         if (msg.attachments != null) {
           msg.attachments.each(function(a) {
-            if ((a.url != null) && a.contentType === "image/png") {
+            if ((a.url != null) && ((a.contentType === "image/png") || (a.contentType === "image/jpg") || (a.contentType === "image/jpeg"))) {
               return ev.image = a.url;
             }
           });

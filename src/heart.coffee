@@ -14,7 +14,7 @@ fatalError = (reason) ->
   console.error "FATAL [heart]: #{reason}"
   process.exit(1)
 
-send = (channelName, text, image) ->
+send = (channelName, text, images) ->
   if text.length < 1
     return
   if not discordGuild?
@@ -28,10 +28,8 @@ send = (channelName, text, image) ->
 
   payload =
     content: text
-  if image?
-    payload.files = [
-      Buffer.from(image, 'base64')
-    ]
+  if images?
+      payload.files = images.map (im) -> Buffer.from(im, 'base64')
 
   if isThread
     discordGuild.channels.fetchActiveThreads().then((fetched) ->
@@ -47,7 +45,7 @@ send = (channelName, text, image) ->
       channel.send(payload)
   return
 
-reply = (username, text, image) ->
+reply = (username, text, images) ->
   if text.length < 1
     return
   user = discordGuild.members.cache.find (e) ->
@@ -56,10 +54,8 @@ reply = (username, text, image) ->
     try
       payload =
         content: text
-      if image?
-        payload.files = [
-          Buffer.from(image, 'base64')
-        ]
+      if images?
+        payload.files = images.map (im) -> Buffer.from(im, 'base64')
       user.send(payload)
     catch
       # who cares
@@ -174,11 +170,11 @@ onInputEvent = (ev) ->
       if ev.chan? and ev.text? and ev.delay?
         delay = parseInt(ev.delay)
         setTimeout ->
-          send(ev.chan, ev.text, ev.image)
+          send(ev.chan, ev.text, ev.images)
         , delay
     when 'reply'
       if ev.user? and ev.text?
-        reply(ev.user, ev.text, ev.image)
+        reply(ev.user, ev.text, ev.images)
     when 'radd'
       if ev.user? and ev.role? and ev.chan?
         roleAdd(ev.user, ev.role.split(/\s+/), ev.chan)
@@ -257,7 +253,7 @@ main = ->
 
       if msg.attachments?
         msg.attachments.each (a) ->
-          if a.url? and a.contentType == "image/png"
+          if a.url? and ((a.contentType == "image/png") or (a.contentType == "image/jpg") or (a.contentType == "image/jpeg"))
             ev.image = a.url
 
       console.log JSON.stringify(ev)
