@@ -29,20 +29,37 @@ send = (channelName, text, images) ->
   payload =
     content: text
   if images?
-      payload.files = images.map (im) -> Buffer.from(im, 'base64')
+      payload.files = images.map (im) -> 
+        if im.match(/^\/tmp\//)
+          setTimeout ->
+            try
+              console.error "Removing: #{im}"
+              fs.unlinkSync(im)
+            catch
+              # who cares
+          , 10000
+          return im
+        return Buffer.from(im, 'base64')
 
   if isThread
     discordGuild.channels.fetchActiveThreads().then((fetched) ->
       fetched.threads.each (thread) ->
         if thread.name == channelName
-          thread.send(payload)
+          try
+            await thread.send(payload)
+          catch e
+            thread.send("Video upload too big! (1)")
     ).catch(console.error)
   else
     channel = discordClient.channels.cache.find (c) ->
       #console.error "c.type: #{c.type}"
       (c.name == channelName) and (c.type == 'GUILD_TEXT')
     if channel?
-      channel.send(payload)
+      try
+        await channel.send(payload)
+      catch e
+        console.error(e)
+        channel.send("Video upload too big! (2)")
   return
 
 reply = (username, text, images) ->
@@ -55,11 +72,26 @@ reply = (username, text, images) ->
       payload =
         content: text
       if images?
-        payload.files = images.map (im) -> Buffer.from(im, 'base64')
-      user.send(payload)
+        payload.files = images.map (im) -> 
+          if im.match(/^\/tmp\//)
+            setTimeout ->
+              try
+                console.error "Removing: #{im}"
+                fs.unlinkSync(im)
+              catch
+                # who cares
+            , 10000
+            return im
+          return Buffer.from(im, 'base64')
+      try
+        await user.send(payload)
+      catch e
+        console.error e
+        user.send("Video upload too big!(3)")
+
     catch
       # who cares
-      console.log "didnt send message to #{username}, something dumb happened"
+      console.error "didnt send message to #{username}, something dumb happened"
   else
     console.error "Can't find user: #{username}"
   return
@@ -189,10 +221,15 @@ onInputEvent = (ev) ->
   return
 
 main = ->
-  if not fs.existsSync("heart.json")
-    fatalError "Can't find heart.json"
+  args = process.argv.slice(2)
+  configFilename = args.shift()
+  if not configFilename?
+    configFilename = "heart.json"
 
-  discordConfig = JSON.parse(fs.readFileSync("heart.json", "utf8"))
+  if not fs.existsSync(configFilename)
+    fatalError "Can't find " + configFilename
+
+  discordConfig = JSON.parse(fs.readFileSync(configFilename, "utf8"))
   for role in discordConfig.roles
     roleAllowed[role] = true
 
@@ -272,7 +309,11 @@ main = ->
     catch
       console.error "Ignoring invalid JSON: #{rawJSON}"
       return
-    onInputEvent(ev)
+    try
+      onInputEvent(ev)
+    catch e
+      console.error(e)
+      console.error("onInputEvent failed, caught!")
 
   discordClient.login(discordConfig.secrets.discord)
 

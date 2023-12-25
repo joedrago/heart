@@ -25,8 +25,8 @@
     return process.exit(1);
   };
 
-  send = function(channelName, text, images) {
-    var channel, isThread, matches, payload;
+  send = async function(channelName, text, images) {
+    var channel, e, isThread, matches, payload;
     if (text.length < 1) {
       return;
     }
@@ -43,14 +43,32 @@
     };
     if (images != null) {
       payload.files = images.map(function(im) {
+        if (im.match(/^\/tmp\//)) {
+          setTimeout(function() {
+            try {
+              console.error(`Removing: ${im}`);
+              return fs.unlinkSync(im);
+            } catch (error) {
+
+            }
+          // who cares
+          }, 10000);
+          return im;
+        }
         return Buffer.from(im, 'base64');
       });
     }
     if (isThread) {
       discordGuild.channels.fetchActiveThreads().then(function(fetched) {
-        return fetched.threads.each(function(thread) {
+        return fetched.threads.each(async function(thread) {
+          var e;
           if (thread.name === channelName) {
-            return thread.send(payload);
+            try {
+              return (await thread.send(payload));
+            } catch (error) {
+              e = error;
+              return thread.send("Video upload too big! (1)");
+            }
           }
         });
       }).catch(console.error);
@@ -60,13 +78,19 @@
         return (c.name === channelName) && (c.type === 'GUILD_TEXT');
       });
       if (channel != null) {
-        channel.send(payload);
+        try {
+          await channel.send(payload);
+        } catch (error) {
+          e = error;
+          console.error(e);
+          channel.send("Video upload too big! (2)");
+        }
       }
     }
   };
 
-  reply = function(username, text, images) {
-    var payload, user;
+  reply = async function(username, text, images) {
+    var e, payload, user;
     if (text.length < 1) {
       return;
     }
@@ -80,13 +104,31 @@
         };
         if (images != null) {
           payload.files = images.map(function(im) {
+            if (im.match(/^\/tmp\//)) {
+              setTimeout(function() {
+                try {
+                  console.error(`Removing: ${im}`);
+                  return fs.unlinkSync(im);
+                } catch (error) {
+
+                }
+              // who cares
+              }, 10000);
+              return im;
+            }
             return Buffer.from(im, 'base64');
           });
         }
-        user.send(payload);
+        try {
+          await user.send(payload);
+        } catch (error) {
+          e = error;
+          console.error(e);
+          user.send("Video upload too big!(3)");
+        }
       } catch (error) {
         // who cares
-        console.log(`didnt send message to ${username}, something dumb happened`);
+        console.error(`didnt send message to ${username}, something dumb happened`);
       }
     } else {
       console.error(`Can't find user: ${username}`);
@@ -281,11 +323,16 @@
   };
 
   main = function() {
-    var i, len, ref, rl, role;
-    if (!fs.existsSync("heart.json")) {
-      fatalError("Can't find heart.json");
+    var args, configFilename, i, len, ref, rl, role;
+    args = process.argv.slice(2);
+    configFilename = args.shift();
+    if (configFilename == null) {
+      configFilename = "heart.json";
     }
-    discordConfig = JSON.parse(fs.readFileSync("heart.json", "utf8"));
+    if (!fs.existsSync(configFilename)) {
+      fatalError("Can't find " + configFilename);
+    }
+    discordConfig = JSON.parse(fs.readFileSync(configFilename, "utf8"));
     ref = discordConfig.roles;
     for (i = 0, len = ref.length; i < len; i++) {
       role = ref[i];
@@ -373,7 +420,7 @@
     });
     //output: process.stderr
     rl.on('line', function(rawJSON) {
-      var ev;
+      var e, ev;
       ev = null;
       try {
         ev = JSON.parse(rawJSON);
@@ -381,7 +428,13 @@
         console.error(`Ignoring invalid JSON: ${rawJSON}`);
         return;
       }
-      return onInputEvent(ev);
+      try {
+        return onInputEvent(ev);
+      } catch (error) {
+        e = error;
+        console.error(e);
+        return console.error("onInputEvent failed, caught!");
+      }
     });
     return discordClient.login(discordConfig.secrets.discord);
   };
